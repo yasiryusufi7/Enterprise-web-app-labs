@@ -1,51 +1,55 @@
 package edu.ku.book_api.controller;
 
-import edu.ku.book_api.model.Books;
-import org.springframework.http.HttpStatus;
+import edu.ku.book_api.model.Book;
+import edu.ku.book_api.model.BookInput;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/api/v1/books")
 public class BookController {
 
-    private final List<Books> books = new ArrayList<>(List.of(
-        new Books(1L, "Clean Code", "Robert C. Martin",
-            "9780132350884", 2008, "Software Engineering"),
-        new Books(2L, "Effective Java", "Joshua Bloch",
-            "9780134685991", 2018, "Java"),
-        new Books(3L, "Designing Data-Intensive Applications", "Martin Kleppmann",
-            "9781449373320", 2017, "Distributed Systems"),
-        new Books(4L, "Spring in Action", "Craig Walls",
-            "9781617297571", 2022, "Spring"),
-        new Books(5L, "Computer Networks", "Andrew S. Tanenbaum",
-            "9780132126953", 2010, "Networking")
+    private final List<Book> books = new ArrayList<>(List.of(
+        new Book(1L, "Java Programming", "John Smith", 5),
+        new Book(2L, "Web Development", "Sara Ahmad", 3),
+        new Book(3L, "Database Systems", "Ali Khan", 4)
     ));
 
-    private final AtomicLong idCounter = new AtomicLong(5);
-
     @GetMapping
-    public List<Books> getAllBooks() {
+    public List<Book> getAllBooks() {
         return books;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Books> getBookById(@PathVariable Long id) {
-        return books.stream()
-            .filter(book -> book.getId().equals(id))
-            .findFirst()
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+    @PutMapping("/{bookId}")
+    public ResponseEntity<?> updateBook(
+        @PathVariable Long bookId,
+        @RequestBody BookInput input
+    ) {
+        for (int i = 0; i < books.size(); i++) {
+            Book existing = books.get(i);
+            if (existing.id().equals(bookId)) {
+                Book updated = new Book(
+                    existing.id(),
+                    input.title(),
+                    input.author(),
+                    input.availableCopies()
+                );
+                books.set(i, updated);
+                return ResponseEntity.ok(updated);
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
 
-    @PostMapping
-    public ResponseEntity<Books> addBook(@RequestBody Books newBook) {
-        newBook.setId(idCounter.incrementAndGet());
-        books.add(newBook);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newBook);
+    @DeleteMapping("/{bookId}")
+    public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) {
+        boolean removed = books.removeIf(book -> book.id().equals(bookId));
+        return removed
+            ? ResponseEntity.noContent().build()
+            : ResponseEntity.notFound().build();
     }
 }
+
